@@ -67,9 +67,17 @@ def ogimetdatadl(stat_id, start_date, end_date, root=""):
     csv_dir = root + filename
     output_table.to_csv(csv_dir, index=False)
 
+    return output_table
+
 #Ogimet Downloader Test
 if __name__ == "__main__":
     stat_id = 98444
     end_date = '2021/02/05'
     start_date = '2021/02/01'
+
+    ##Console Input
+    #stat_id = input("Enter WMO Index: ")
+    #start_date = input("Enter start date (yyyy/mm/dd): ")
+    #end_date = input("Enter end date (yyyy/mm/dd): ")
+
     a = ogimetdatadl(stat_id, start_date, end_date)
