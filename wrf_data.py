@@ -93,7 +93,7 @@ for i in range(len(var_list)):
         vars()[var_list[i]] = getattr(wrf_df, attr_list[i])
 
         if var_list[i] == 'RAIN':
-            vars()[var_list[i]] = wrf_df.sum2inc(RAIN, 24)
+            vars()[var_list[i]] = wrf_df.sum2inc(vars()[var_list[i]], 24)
         
         batch_npy_export(vars()[var_list[i]], filename, input_prompt=False,
                          indices_path=r"D:\...\...\*.csv",
