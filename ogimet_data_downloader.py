@@ -54,15 +54,31 @@ def ogimetdatadl(stat_id, start_date, end_date, root=""):
             output_table = output_table.assign(Date=date_arr)
         
         #col_index=1 has the same name as col_index=0
-        elif col_index > 1:
+        else:
             col_var = column_list[col_index]
             col_value = np.asarray((list(df[col_var]))[0])
             null_val = np.where((np.char.endswith(col_value, '-')) == True)
             col_value[null_val] = 999999
 
-            output_table.insert(col_index-1, col_var, col_value)
-    
-    
+            output_table.insert(col_index, col_var, col_value)
+
+            if column_list[col_index] == 'Prec(mm)':
+                rain_raw = np.char.split(col_value, sep='/')
+                rain_shape = rain_raw.shape
+                rain_val = np.empty(shape=rain_shape)
+                rain_dur = np.empty(shape=rain_shape)
+                
+                for i in range(rain_shape[0]):
+                    if rain_raw[i][0] != '999999':
+                        rain_val[i] = rain_raw[i][0]
+                        rain_dur[i] = (rain_raw[i][1]).strip("h")
+                    else:
+                        rain_val[i] = 999999
+                        rain_dur[i] = 0
+                
+                output_table['Prec(mm)'] = rain_val
+                output_table.insert(col_index, 'Prec(h)', rain_dur)
+  
     filename = "{0}_Obs_Data_{1}-{2}.csv".format(date_info.stat_id, date_info.start_date.strftime('%Y%m%d'), date_info.end_date.strftime('%Y%m%d'))
     csv_dir = root + filename
     output_table.to_csv(csv_dir, index=False)
