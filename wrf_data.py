@@ -74,24 +74,29 @@ def batch_npy_export(variable, filename, input_prompt=True, indices_path="", sav
         np.save(base_dir+var_filename, var_list)
 
 
+#Test
 wrf_dir = r"D:\...\...\..."
 
 counter = 0
 for dirs in os.walk(wrf_dir):
     wrf_list = dirs[2]
 
-for output_file in wrf_list:
-    wrf_filename = wrf_dir + "\\" + output_file
-    base_name = (re.findall('mp[0-9][0-9]cu[0-9][0-9]', output_file))[0]
-    wrf_df = WRF(input_prompt=False, path=wrf_filename)
-    
-    filename = "_" + base_name + "_" + "RAIN.npy"
-    RAIN = wrf_df.rain
-    HRAIN = wrf_df.sum2inc(RAIN, 24)
-    print(HRAIN.shape)
-    
-    batch_npy_export(HRAIN, filename, input_prompt=False,
-                     indices_path=r"D:\...\...\*.csv",
-                     save_path=r"D:\...\...\...")
+var_list = ['PRESS', 'TEMP', 'RAIN']
+attr_list = ['slp', 'temp', 'rain']
+for i in range(len(var_list)):
+    for output_file in wrf_list:
+        wrf_filename = wrf_dir + "\\" + output_file
+        base_name = (re.findall('mp[0-9][0-9]cu[0-9][0-9]', output_file))[0]
+        wrf_df = WRF(input_prompt=False, path=wrf_filename)
+        
+        filename = "_" + base_name + "_" + var_list[i] + ".npy"
+        vars()[var_list[i]] = getattr(wrf_df, attr_list[i])
+
+        if var_list[i] == 'RAIN':
+            vars()[var_list[i]] = wrf_df.sum2inc(RAIN, 24)
+        
+        batch_npy_export(vars()[var_list[i]], filename, input_prompt=False,
+                         indices_path=r"D:\...\...\*.csv",
+                         save_path=r"D:\...\...\...")
 
     
