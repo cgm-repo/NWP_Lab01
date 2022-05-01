@@ -1,62 +1,76 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Mar 25 14:35:39 2022
-
-@author: crisg
-"""
 import pandas as pd
 import numpy as np
-import re
 import os
+from datetime import datetime
 
-wrf_dir = r"D:\Cris Gino Mesias - User\Documents\MS_Meteo\Meteo_234_(Numerical_Weather_Prediction)\Lab_01\WRF_Output_Files"
-coords_index = r"D:\Cris Gino Mesias - User\Documents\MS_Meteo\Meteo_234_(Numerical_Weather_Prediction)\Lab_01\WRF_Coords_Index.csv"
-ogimet_root = r"D:\Cris Gino Mesias - User\Documents\MS_Meteo\Meteo_234_(Numerical_Weather_Prediction)\Lab_01\Ogimet_Data"
-obs_root = r"D:\Cris Gino Mesias - User\Documents\MS_Meteo\Meteo_234_(Numerical_Weather_Prediction)\Lab_01\Observed_Data"
+class Observation:
+    def  __init__(self, input_prompt=True, path=""):
+        if input_prompt:
+            self.path = (input("Enter observation .csv file full path: ")).strip('"')
+        else:
+            self.path = path
 
-total = 0
-coords_df = pd.read_csv(coords_index, index_col=False)
-for i in coords_df.iterrows():
-    station = i[1][0]
-    station_no = i[1][0][0:5]
-    
-    station_dir = ogimet_root + "\\" + station + "\\"
-    csv_filename = (os.listdir(station_dir))[0]
-    full_path = station_dir + csv_filename
-    
-    ogimet_df = pd.read_csv(full_path, index_col=False)
-    
-    obs_temp = (ogimet_df['Temperature'] + 273.15).tolist()
-    obs_press = (ogimet_df['Pressure']).tolist()
-    
-    #Null Masking
-    null_rain = ogimet_df['Precipitation'] == '----'
-    trace_rain = ogimet_df['Precipitation'].str[:2] == 'Tr'
-    ogimet_df.loc[null_rain, 'Precipitation'] = '0.0/24h'
-    ogimet_df.loc[trace_rain, 'Precipitation'] = '0.0/24h'
-    
-    #24h Rainfall Data Check
-    prec_24h = ~((ogimet_df['Precipitation'].str.extract(r'(.*/[2][4]h)')).isna())
-    mask_24h = prec_24h.squeeze()
-    
-    counter = 0
-    for j in range(len(mask_24h)):
-        if mask_24h.loc[j]:
-            ext_rain_raw = (re.findall('.*\.\d{1}', (ogimet_df.loc[j, 'Precipitation'])))
-            ext_rain_float = float(ext_rain_raw[0])
-            ogimet_df.loc[j, 'Precipitation'] = ext_rain_float
-            counter += 1
-    
-    obs_rain = ogimet_df['Precipitation'].tolist()
-    
-    temp_filename = station_no + "_" + "dtemp_s01_obs.npy"
-    press_filename = station_no + "_" + "dpress_s01_obs.npy"
-    rain_filename = station_no + "_" + "drain_obs.npy"
-    
-    base_dir = obs_root + "\\" + station + "\\"
-    
-    np.save(base_dir+temp_filename, obs_temp)
-    np.save(base_dir+press_filename, obs_press)
-    np.save(base_dir+rain_filename, obs_rain)
-    
-    total = total + counter
+        self.df = pd.read_csv(self.path, index_col=False)
+
+    def isolate_var(self, variable, duration):
+        df = self.df
+        drop_list = []
+        for idx, row in enumerate(df.itertuples(index=False)):
+            date = datetime.strptime(row[0], '%m/%d/%Y %H:%M')
+            if duration == 24 or duration == 0:
+                duration = 0
+                if date.hour != 0:
+                    drop_list.append(idx)
+            else:
+                if date.hour % duration != 0:
+                    drop_list.append(idx)
+
+        df_conv = df.drop(drop_list)
+        df_return = df_conv[variable]
+
+        if variable == 'Precip':
+            if duration == 0:
+                check_df = df_conv['Precip_Dur'] == 24
+
+                if check_df.eq(True).all():
+                    df_return = df_conv['Precip']
+                else:
+                    df_return = df_conv[['Precip', 'Precip_Dur']]
+
+        return df_return
+
+    def var_save(self, var_df, filename):
+        df_tosave = var_df.tolist()
+        np.save(filename, df_tosave)
+
+def synop_data(coords_path, ogimet_root, obs_root, duration, variables):
+    coords_df = pd.read_csv(coords_path, index_col=False)
+    for i in coords_df.iterrows():
+        station = i[1][0]
+        station_no = i[1][0][0:5]
+        
+        station_dir = ogimet_root + "\\" + station + "\\"
+        csv_filename = (os.listdir(station_dir))[0]
+        full_path = station_dir + csv_filename
+        
+        ogimet_df = Observation(input_prompt=False, path=full_path)
+
+        base_dir = obs_root + "\\" + station + "\\"
+        for j in range(len(variables)):
+            var_name = variables[j]
+            var_filename = '{0}{1}_{2}.npy'.format(base_dir, station_no, var_name)
+            var_df = ogimet_df.isolate_var(var_name, duration)
+            if variables[j] == 'Temp':
+                temp_var = var_df + 273.15
+                ogimet_df.var_save(temp_var, var_filename)
+            else:
+                ogimet_df.var_save(var_df, var_filename)
+            
+#Test
+coords_path = r'D:\...\...\*.csv'
+ogimet_root = r'D:\...\...\...'
+obs_root = r'D:\...\...\...'
+variables = ['Temp', 'Precip', 'SLP']
+
+if __name__ == "__main__":
+    synop_data(coords_path, ogimet_root, obs_root, 24, variables)
