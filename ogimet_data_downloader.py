@@ -11,6 +11,11 @@ VAR_LIST = ['Date', 'T(C)', 'Td(C)', 'Hr%',
             'P0hPa', 'P seahPa', 'PTnd', 'Prec(mm)',
             'Nt', 'Nh', 'HKm', 'Viskm']
 
+VAR_PROP = ['Date', 'Temp', 'Dew_Pt', 'RH',
+            'Max_Temp', 'Min_Temp', 'Wind_Dir', 'Wind_Speed',
+            'Base_Press', 'SLP', 'Press_Trend', 'Precip',
+            'Total_Cover', 'Low_Cover', 'Cloud_Base', 'Vis']
+
 class Ogimet_Entry:
     def __init__(self, stat_id, start_date, end_date):
         self.stat_id = str(stat_id)
@@ -56,11 +61,12 @@ def ogimetdatadl(stat_id, start_date, end_date, root=""):
         #col_index=1 has the same name as col_index=0
         else:
             col_var = column_list[col_index]
+            col_name = VAR_PROP[col_index]
             col_value = np.asarray((list(df[col_var]))[0])
             null_val = np.where((np.char.endswith(col_value, '-')) == True)
             col_value[null_val] = 999999
 
-            output_table.insert(col_index, col_var, col_value)
+            output_table.insert(col_index, col_name, col_value)
 
             if column_list[col_index] == 'Prec(mm)':
                 rain_raw = np.char.split(col_value, sep='/')
@@ -70,14 +76,18 @@ def ogimetdatadl(stat_id, start_date, end_date, root=""):
                 
                 for i in range(rain_shape[0]):
                     if rain_raw[i][0] != '999999':
-                        rain_val[i] = rain_raw[i][0]
-                        rain_dur[i] = (rain_raw[i][1]).strip("h")
+                        if rain_raw[i][0] == 'Tr':
+                            rain_val[i] = 0
+                            rain_dur[i] = 0
+                        else:
+                            rain_val[i] = rain_raw[i][0]
+                            rain_dur[i] = (rain_raw[i][1]).strip("h") 
                     else:
                         rain_val[i] = 999999
                         rain_dur[i] = 0
                 
-                output_table['Prec(mm)'] = rain_val
-                output_table.insert(col_index, 'Prec(h)', rain_dur)
+                output_table['Precip'] = rain_val
+                output_table.insert(col_index, 'Precip_Dur', rain_dur)
   
     filename = "{0}_Obs_Data_{1}-{2}.csv".format(date_info.stat_id, date_info.start_date.strftime('%Y%m%d'), date_info.end_date.strftime('%Y%m%d'))
     csv_dir = root + filename
@@ -88,8 +98,8 @@ def ogimetdatadl(stat_id, start_date, end_date, root=""):
 #Ogimet Downloader Test
 if __name__ == "__main__":
     stat_id = 98444
-    end_date = '2021/02/05'
-    start_date = '2021/02/01'
+    start_date = '2014/07/13'
+    end_date = '2014/07/16'
 
     ##Console Input
     #stat_id = input("Enter WMO Index: ")
