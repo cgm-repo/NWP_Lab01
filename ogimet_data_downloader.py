@@ -6,12 +6,7 @@ from datetime import datetime
 import numpy as np
 
 #Complete SYNOP variables
-VAR_LIST = ['Date', 'T(C)', 'Td(C)', 'Hr%',
-            'Tmax(C)', 'Tmin(C)', 'ddd', 'ffkmh',
-            'P0hPa', 'P seahPa', 'PTnd', 'Prec(mm)',
-            'Nt', 'Nh', 'HKm', 'Viskm']
-
-VAR_PROP = ['Date', 'Temp', 'Dew_Pt', 'RH',
+VAR_LIST = ['Date', 'Temp', 'Dew_Pt', 'RH',
             'Max_Temp', 'Min_Temp', 'Wind_Dir', 'Wind_Speed',
             'Base_Press', 'SLP', 'Press_Trend', 'Precip',
             'Total_Cover', 'Low_Cover', 'Cloud_Base', 'Vis']
@@ -61,7 +56,7 @@ def ogimetdatadl(stat_id, start_date, end_date, root=""):
         #col_index=1 has the same name as col_index=0
         else:
             col_var = column_list[col_index]
-            col_name = VAR_PROP[col_index]
+            col_name = VAR_LIST[col_index]
             col_value = np.asarray((list(df[col_var]))[0])
             null_val = np.where((np.char.endswith(col_value, '-')) == True)
             col_value[null_val] = 999999
